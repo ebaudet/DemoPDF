@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      RAILS_ENV: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Prepare database
+        run: bin/rails db:test:prepare
+
+      - name: Run all tests
+        run: bin/rails test:all
+
+      - name: Verify eager loading
+        run: bin/rails zeitwerk:check
+
+      - name: Compile test JavaScript
+        run: bin/webpack
+
+      - name: Compile production assets
+        env:
+          RAILS_ENV: production
+          SECRET_KEY_BASE_DUMMY: "1"
+        run: bin/rails assets:precompile

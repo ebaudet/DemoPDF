@@ -3,8 +3,9 @@ class HomeController < ApplicationController
   end
 
   def generatePdf
-    @name = params[:form_params][:name]
-    @age = params[:form_params][:age]
+    form_params = params.expect(form_params: [:name, :age])
+    @name = form_params[:name]
+    @age = form_params[:age]
 
     render pdf: "file_name"
   end

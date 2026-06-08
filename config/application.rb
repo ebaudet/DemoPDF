@@ -16,7 +16,7 @@ module DemoPdf
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    config.active_support.to_time_preserves_timezone = :zone
+    config.active_storage.variant_processor = :disabled
 
     # Configuration for the application, engines, and railties goes here.
     #

@@ -69,15 +69,13 @@ bower.json
 # Ignore node_modules
 node_modules/
 
-# Ignore precompiled javascript packs
+# Ignore precompiled assets
+/public/assets
 /public/packs
 /public/packs-test
-/public/assets
 
-# Ignore yarn files
-/yarn-error.log
-yarn-debug.log*
-.yarn-integrity
+# Ignore npm logs
+npm-debug.log*
 
 # Ignore uploaded files in development
 /storage/*
@@ -93,3 +91,5 @@ yarn-debug.log*
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+db/development.sqlite3-shm
+db/development.sqlite3-wal

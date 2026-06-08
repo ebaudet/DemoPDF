@@ -13,7 +13,7 @@ PDF containing those values and an embedded image.
 - Rails 8
 - SQLite
 - Wicked PDF and `wkhtmltopdf-binary`
-- Webpacker 5, Webpack 4, and Yarn Classic 1.22.22
+- Sprockets for CSS and image assets
 - Minitest and `pdf-reader`
 - GitHub Actions
 
@@ -24,7 +24,7 @@ Install the following before setting up the project:
 - Ruby 3.3.7
 - Bundler 2.7.0
 - Node.js 20 or newer
-- Corepack, included with supported Node.js releases
+- npm
 - SQLite
 
 The `wkhtmltopdf-binary` gem supplies the PDF executable, so a separate
@@ -39,14 +39,13 @@ git clone git@github.com:ebaudet/DemoPDF.git
 cd DemoPDF
 
 bundle install
-corepack enable
-yarn install --frozen-lockfile
+npm ci
 bin/rails db:prepare
 ```
 
 Alternatively, `bin/setup --skip-server` installs Ruby gems, prepares the
-database, and clears temporary files. JavaScript dependencies still require
-`corepack enable` and `yarn install --frozen-lockfile`.
+database, and clears temporary files. Run `npm ci` separately to verify the npm
+lockfile.
 
 ## Run The Application
 
@@ -59,14 +58,6 @@ bin/rails server
 Open [http://localhost:3000](http://localhost:3000), enter a name and age, then
 select **Generate PDF**. The generated `file_name.pdf` opens inline in the
 browser.
-
-For development with a separate Webpack watcher, run these in separate
-terminals:
-
-```sh
-bin/rails server
-bin/webpack-dev-server
-```
 
 Useful development commands:
 
@@ -162,25 +153,20 @@ Additional verification commands:
 CI=1 bin/rails test:all
 bin/rails zeitwerk:check
 bundle check
-yarn check --integrity
+npm ci
+npm audit --audit-level=high
 ```
 
 ## Compile Assets
 
-Compile JavaScript for the test environment:
-
-```sh
-RAILS_ENV=test bin/webpack
-```
-
-Compile production assets:
+The application does not require a JavaScript bundler. Compile production CSS
+and image assets through Sprockets:
 
 ```sh
 RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 ```
 
-Compiled assets are generated under `public/assets`, `public/packs`, and
-`public/packs-test`. These directories are ignored by Git.
+Compiled assets are generated under `public/assets`, which is ignored by Git.
 
 ## Run In Production
 
@@ -203,8 +189,22 @@ place Puma behind a production web server or platform router.
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` runs on every push
 and pull request. It installs Ruby and JavaScript dependencies, prepares the
-database, runs all tests, checks eager loading, and compiles test and production
-assets.
+database, audits npm dependencies, runs all tests, checks eager loading, and
+compiles production assets.
+
+## Dependency Security
+
+Run the JavaScript dependency audit with:
+
+```sh
+npm audit
+```
+
+The application intentionally avoids a JavaScript bundler because its current
+pages do not require application JavaScript. This removes the unsupported
+Webpacker 5 and Webpack 4 dependency tree. Add JavaScript dependencies only
+when application behavior requires them, commit the updated `package-lock.json`,
+and keep the CI audit passing.
 
 ## Project Structure
 
@@ -220,26 +220,17 @@ test/controllers/home_controller_test.rb  Integration and PDF tests
 
 ## Troubleshooting
 
-### Yarn or Corepack tries to download an unexpected version
+### npm reports dependency vulnerabilities
 
-The project pins Yarn Classic in `package.json`. Enable Corepack and reinstall
-dependencies:
-
-```sh
-corepack enable
-yarn install --frozen-lockfile
-```
-
-### Webpacker cannot find `application.js`
-
-Compile the pack for the environment being used:
+Review the dependency paths before applying breaking upgrades:
 
 ```sh
-RAILS_ENV=test bin/webpack
+npm audit
+npm outdated
 ```
 
-For development, start `bin/webpack-dev-server` or allow Webpacker to compile
-the pack when the page is requested.
+Avoid `npm audit fix --force` unless the resulting major-version changes have
+been reviewed and the complete test and asset build sequence passes.
 
 ### PDF generation fails
 

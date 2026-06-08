@@ -24,13 +24,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-
-      - name: Enable Corepack
-        run: corepack enable
+          cache: npm
 
       - name: Install JavaScript dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
+
+      - name: Audit JavaScript dependencies
+        run: npm audit --audit-level=high
 
       - name: Prepare database
         run: bin/rails db:test:prepare
@@ -40,9 +40,6 @@ jobs:
 
       - name: Verify eager loading
         run: bin/rails zeitwerk:check
-
-      - name: Compile test JavaScript
-        run: bin/webpack
 
       - name: Compile production assets
         env:

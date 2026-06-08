@@ -171,8 +171,7 @@ GEM
       prettyprint
     prettyprint (0.2.0)
     prism (1.9.0)
-    psych (5.4.0)
-      date
+    psych (5.1.2)
       stringio
     public_suffix (7.0.5)
     puma (6.6.1)
@@ -320,6 +319,7 @@ DEPENDENCIES
   listen (~> 3.3)
   minitest-rails
   pdf-reader
+  psych (= 5.1.2)
   puma (~> 6)
   rack-mini-profiler (~> 2.0)
   rails (~> 8.0, >= 8.0.0)

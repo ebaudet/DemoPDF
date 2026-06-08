@@ -1,24 +1,259 @@
-# README
+# DemoPDF
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+DemoPDF is a small Rails application demonstrating how to generate a PDF from
+an HTML template with [Wicked PDF](https://github.com/mileszs/wicked_pdf) and
+`wkhtmltopdf`.
 
-Things you may want to cover:
+The home page displays a form for a name and age. Submitting the form renders a
+PDF containing those values and an embedded image.
 
-* Ruby version
+## Stack
 
-* System dependencies
+- Ruby 3.3.7
+- Rails 8
+- SQLite
+- Wicked PDF and `wkhtmltopdf-binary`
+- Webpacker 5, Webpack 4, and Yarn Classic 1.22.22
+- Minitest and `pdf-reader`
+- GitHub Actions
 
-* Configuration
+## Requirements
 
-* Database creation
+Install the following before setting up the project:
 
-* Database initialization
+- Ruby 3.3.7
+- Bundler 2.7.0
+- Node.js 20 or newer
+- Corepack, included with supported Node.js releases
+- SQLite
 
-* How to run the test suite
+The `wkhtmltopdf-binary` gem supplies the PDF executable, so a separate
+`wkhtmltopdf` installation is normally unnecessary.
 
-* Services (job queues, cache servers, search engines, etc.)
+## Setup
 
-* Deployment instructions
+Clone the repository and install its dependencies:
 
-* ...
+```sh
+git clone git@github.com:ebaudet/DemoPDF.git
+cd DemoPDF
+
+bundle install
+corepack enable
+yarn install --frozen-lockfile
+bin/rails db:prepare
+```
+
+Alternatively, `bin/setup --skip-server` installs Ruby gems, prepares the
+database, and clears temporary files. JavaScript dependencies still require
+`corepack enable` and `yarn install --frozen-lockfile`.
+
+## Run The Application
+
+Start Rails:
+
+```sh
+bin/rails server
+```
+
+Open [http://localhost:3000](http://localhost:3000), enter a name and age, then
+select **Generate PDF**. The generated `file_name.pdf` opens inline in the
+browser.
+
+For development with a separate Webpack watcher, run these in separate
+terminals:
+
+```sh
+bin/rails server
+bin/webpack-dev-server
+```
+
+Useful development commands:
+
+```sh
+bin/rails console
+bin/rails routes
+bin/rails db:migrate
+bin/rails db:seed
+```
+
+## Configuration
+
+The application uses SQLite in every environment:
+
+- Development: `db/development.sqlite3`
+- Test: `db/test.sqlite3`
+- Production: `db/production.sqlite3`
+
+Database files are generated locally and ignored by Git. Rails encrypted
+credentials are stored in `config/credentials.yml.enc`; keep
+`config/master.key` private and provide it through `RAILS_MASTER_KEY` when
+needed outside development.
+
+## HTTP Example
+
+Generate and save a PDF without using the browser:
+
+```sh
+csrf_token="$(
+  curl --silent --cookie-jar cookies.txt http://localhost:3000/ |
+    sed -n 's/.*name="csrf-token" content="\([^"]*\)".*/\1/p'
+)"
+
+curl --request POST \
+  --cookie cookies.txt \
+  --data-urlencode "authenticity_token=${csrf_token}" \
+  --data-urlencode "form_params[name]=Alice" \
+  --data-urlencode "form_params[age]=30" \
+  http://localhost:3000/ \
+  --output file_name.pdf
+
+rm cookies.txt
+```
+
+Routes:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | Display the PDF generation form |
+| `POST` | `/` | Generate a PDF from `form_params[name]` and `form_params[age]` |
+
+A `POST` request without `form_params` returns `400 Bad Request`.
+
+## Customize The PDF
+
+The main PDF-related files are:
+
+- `app/controllers/home_controller.rb`: accepts form values and invokes Wicked PDF.
+- `app/views/home/generatePdf.html.erb`: defines the generated PDF content.
+- `config/initializers/wicked_pdf.rb`: contains optional global Wicked PDF settings.
+- `app/assets/images/red-wall.jpg`: demonstrates embedding an asset in a PDF.
+
+Wicked PDF renders the `generatePdf` HTML template through `wkhtmltopdf`.
+Use `wicked_pdf_asset_base64` for images that must be embedded reliably in the
+generated document.
+
+## Test
+
+Prepare the test database and run the complete suite:
+
+```sh
+bin/rails db:test:prepare
+bin/rails test:all
+```
+
+Run only the PDF integration tests:
+
+```sh
+bin/rails test test/controllers/home_controller_test.rb
+```
+
+The tests verify:
+
+- The form and its fields render correctly.
+- Submitted values appear in the generated PDF.
+- The response has PDF headers and a readable page.
+- Blank values still generate a PDF.
+- Malformed requests return `400 Bad Request`.
+
+Additional verification commands:
+
+```sh
+CI=1 bin/rails test:all
+bin/rails zeitwerk:check
+bundle check
+yarn check --integrity
+```
+
+## Compile Assets
+
+Compile JavaScript for the test environment:
+
+```sh
+RAILS_ENV=test bin/webpack
+```
+
+Compile production assets:
+
+```sh
+RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
+```
+
+Compiled assets are generated under `public/assets`, `public/packs`, and
+`public/packs-test`. These directories are ignored by Git.
+
+## Run In Production
+
+Prepare the database and assets, then start the server:
+
+```sh
+export RAILS_ENV=production
+export SECRET_KEY_BASE="$(bin/rails secret)"
+
+bin/rails db:prepare
+bin/rails assets:precompile
+bin/rails server
+```
+
+For a real deployment, persist `db/production.sqlite3`, provide a stable
+`SECRET_KEY_BASE` or `RAILS_MASTER_KEY`, serve static assets, enable HTTPS, and
+place Puma behind a production web server or platform router.
+
+## Continuous Integration
+
+The GitHub Actions workflow at `.github/workflows/ci.yml` runs on every push
+and pull request. It installs Ruby and JavaScript dependencies, prepares the
+database, runs all tests, checks eager loading, and compiles test and production
+assets.
+
+## Project Structure
+
+```text
+app/controllers/home_controller.rb       PDF request handling
+app/views/home/index.html.erb             Input form
+app/views/home/generatePdf.html.erb       PDF template
+config/initializers/wicked_pdf.rb         Wicked PDF configuration
+config/routes.rb                          Application routes
+test/controllers/home_controller_test.rb  Integration and PDF tests
+.github/workflows/ci.yml                  GitHub Actions CI
+```
+
+## Troubleshooting
+
+### Yarn or Corepack tries to download an unexpected version
+
+The project pins Yarn Classic in `package.json`. Enable Corepack and reinstall
+dependencies:
+
+```sh
+corepack enable
+yarn install --frozen-lockfile
+```
+
+### Webpacker cannot find `application.js`
+
+Compile the pack for the environment being used:
+
+```sh
+RAILS_ENV=test bin/webpack
+```
+
+For development, start `bin/webpack-dev-server` or allow Webpacker to compile
+the pack when the page is requested.
+
+### PDF generation fails
+
+Confirm the bundled executable is available and rerun the PDF integration test:
+
+```sh
+bundle exec wkhtmltopdf --version
+bin/rails test test/controllers/home_controller_test.rb
+```
+
+### Reset the local database
+
+This application uses SQLite. Reset the current environment database with:
+
+```sh
+bin/rails db:reset
+```

@@ -19,8 +19,8 @@ capybara-*.html
 rerun.txt
 pickle-email-*.html
 
-# development rules
-test.rb
+# Root-level local development file
+/test.rb
 
 # ide rules
 .idea/
@@ -93,4 +93,3 @@ yarn-debug.log*
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
-
